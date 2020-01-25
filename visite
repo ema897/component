@@ -1,0 +1,195 @@
+#include <vector>
+#include <string>
+#include <fstream>
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <cstring>
+#include <cctype>
+#include <queue>
+#include <stack>
+#include <iostream>
+#include <list>
+#include <sstream>
+#include <iostream>
+using namespace std;
+
+
+class Component {
+public:
+    Component();
+    virtual ~Component();
+    virtual void logicFunction();
+    void setInputs( Component &);
+    char getOutput() const;
+    bool getVisited() const;
+    void setVisited();
+    void clearVisited();
+    Component* leftChild();
+    Component* rightChild();
+    int getpath() const;
+    void setPath(int &);
+    bool getStart() const ;
+    void setStart(bool &);
+protected:
+    char  _present_state,_previous_state;
+    Component *_x1,*_x2;
+    float _lh,_hl;// consumo da low a high e da high a low
+    bool _visited;
+    int _path;
+    bool _start;
+private:
+};
+
+
+char toChar(bool x){
+    char c;
+    if(x) c='1';
+    else c='0';
+    return c;
+}
+
+bool toBool(char c){
+    bool x;
+    if (c=='1') x=true;
+    else x=false;
+    return x;
+}
+
+Component ::Component() {
+    //ctor
+    _x1= nullptr;
+    _x2= nullptr;
+    _present_state='0';
+    _previous_state='0';
+    _lh=0;
+    _hl=0;
+    _visited=false;
+    _path=0;
+}
+
+Component ::~Component() {
+    //dtor
+}
+
+void Component :: logicFunction() {
+    cout<<"nothing";
+}
+void Component ::setInputs( Component &a){
+    _x1=&a;
+}
+
+char Component ::getOutput() const {
+    return _present_state;
+}
+
+Component* Component :: leftChild(){
+    return _x1;
+}
+Component* Component :: rightChild(){
+    return _x2;
+}
+
+bool Component::getVisited() const {
+    return _visited;
+}
+
+void Component::clearVisited() {
+    _visited=false;
+}
+
+void Component::setVisited() {
+    _visited=true;
+}
+
+int Component :: getpath() const {
+    return _path;
+}
+void Component :: setPath(int& cammino){
+    _path=cammino;
+}
+bool Component :: getStart() const {
+    return _start;
+}
+void Component :: setStart(bool& start){
+    _start=start;
+}
+
+//classe circuit: grafo di component 
+
+void Circuit :: clearVisit(Component* node){
+    node->clearVisited();
+    list<Component*>* AdjList = new list<Component*>;
+    list<Component*>::iterator it;
+    if(node->leftChild()!= nullptr) AdjList->push_front(node->leftChild());
+    if(node->rightChild()!= nullptr) AdjList->push_front(node->rightChild());
+    for(it=AdjList->begin();it!=AdjList->end();++it){
+        if ((*it)->getVisited()) clearVisit(*it);        //??
+    }
+}
+bool Circuit :: graphHasCycle(Component* head) {
+    stack<Component*> s;
+    s.push(head);
+    Component* temp1;
+    Component* temp2;
+    while(!s.empty()){
+        if(s.top()->getVisited()) return true;
+        s.top()->setVisited();
+        temp1=s.top()->leftChild();
+        temp2=s.top()->rightChild();
+        s.pop();
+        if(temp1!= nullptr) s.push(temp1);
+        if(temp2!= nullptr) s.push(temp2);
+    }
+    return false;
+}
+
+bool Circuit :: checkFeedback(){
+    bool cycleFlag=false;
+    int i=0;
+    for(int i=0; i<_output_vector.size() && !cycleFlag; i++){
+        cycleFlag=graphHasCycle(_output_vector[i].data);
+        clearVisit(_output_vector[i].data);
+    }
+    clearVisit(_output_vector[i].data);
+    return cycleFlag;
+}
+
+int Circuit :: shortestFeed(Component* head){
+    queue<Component *> coda;
+    int path=0;
+    bool start=true;
+    int cammino= INT_MAX;
+    head->setPath(path);
+    head->setStart(start);
+    coda.push(head);
+    while (!coda.empty()) {
+        if (!coda.front()->getVisited()) {
+            coda.front()->setVisited();
+            path = coda.front()->getpath() + 1;
+            if (coda.front()->leftChild() != nullptr) {
+                coda.front()->leftChild()->setPath(path);
+                coda.push(coda.front()->leftChild());
+            }
+            if (coda.front()->rightChild() != nullptr) {
+                coda.front()->rightChild()->setPath(path);
+                coda.push(coda.front()->rightChild());
+            }
+        } else {
+            if (coda.front()->getStart()) {
+                //ho trovato l'elemento di partenza
+                if (coda.front()->getpath() < cammino) {
+                    cammino = coda.front()->getpath();
+                }
+            }
+            coda.pop();
+        }
+    }
+    clearVisit(head);
+    start= false;
+    head->setStart(start);
+    return cammino;
+}
